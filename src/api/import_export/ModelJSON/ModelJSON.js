@@ -2,6 +2,8 @@ import { isTrue } from "../../../Utilities.js";
 import { Model } from "../../Model.js";
 
 
+/** @typedef {import("../../../SharedTypes.js").GraphNode} GraphNode */
+
 const TIME_UNITS = ["SECONDS", "MINUTES", "HOURS", "DAYS", "WEEKS", "MONTHS", "YEARS"];
 
 
@@ -11,7 +13,7 @@ const TIME_UNITS = ["SECONDS", "MINUTES", "HOURS", "DAYS", "WEEKS", "MONTHS", "Y
  * 
  * @param {string} label
  * @param {object} object 
- * @param {object} allowed 
+ * @param {Object<string, string|string[]>} allowed 
  * @param {string[]} errors
  * 
  * @return {boolean} - true if there were no errors
@@ -69,6 +71,8 @@ function validateKeys(label, object, allowed, errors) {
         }
       } else if (Array.isArray(type)) {
         validateEnum(key, object[key], type, errors);
+      } else {
+        throw new Error(`Unknown type "${type}" in validateKeys.`);
       }
     }
   }
@@ -125,7 +129,7 @@ function validateModel(object, errors) {
       "simulation": "object",
       "elements": "array",
       "visualizations": "array",
-      "units": "array"
+      "engine_settings": "object"
     },
     errors
   );
@@ -145,7 +149,30 @@ function validateModel(object, errors) {
         "time_step": "number",
         "time_units": TIME_UNITS
       }, errors);
+  }
 
+  if (object.engine_settings) {
+    validateKeys(
+      "the engine_settings",
+      object.engine_settings,
+      {
+        "units": "array",
+        "globals": "string"
+      }, errors);
+
+
+    if (object.engine_settings.units && Array.isArray(object.engine_settings.units)) {
+      for (let unit of object.engine_settings.units) {
+        validateKeys(
+          "a unit",
+          unit,
+          {
+            "name": "string",
+            "base": "string",
+            "factor": "number"
+          }, errors);
+      }
+    }
   }
 
   if (object.visualizations) {
@@ -174,19 +201,6 @@ function validateModel(object, errors) {
   }
 
 
-  if (object.units) {
-    for (let unit of object.units) {
-      validateKeys(
-        "a unit",
-        unit,
-        {
-          "name": "string",
-          "base": "string",
-          "to_base": "number"
-        }, errors);
-    }
-  }
-
 
   if (!object.elements) {
     errors.push("You must have an array of elements");
@@ -199,11 +213,13 @@ function validateModel(object, errors) {
         "behavior": "object",
         "display": "object"
       };
+      /** @type {Object<string, string|string[]>} */
       let allowedBehavior = {
 
       };
+      /** @type {Object<string, string|string[]>} */
       let allowedDisplay = {
-
+        symbol: "string"
       };
 
       function assignProperties(base, behavior, display) {
@@ -350,7 +366,7 @@ function toNumberOrString(val) {
     return parsed;
   }
 
-  return trimmed.replaceAll(/\\n/g, "\n");
+  return trimmed;
 }
 
 
@@ -400,6 +416,12 @@ let processors = {
       el.display = {
         interactive: true
       };
+    }
+
+    let symbol = element.getAttribute("Image");
+    if (symbol && symbol.startsWith("emoji:")) {
+      el.display = el.display || {};
+      el.display.symbol = symbol.slice(6);
     }
 
     return el;
@@ -639,10 +661,6 @@ export function createModelJSON(model) {
   };
 
 
-  if (mySetting.getAttribute("Macros")?.trim()) {
-    fileNotes.push("Macros were defined but are not part of ModelJSON.");
-  }
-
   /** @type {Object<string, object>} */
   let nameMap = Object.create(null);
   const elements = [];
@@ -753,21 +771,32 @@ export function createModelJSON(model) {
   modelJSON.simulation = sim;
   modelJSON.elements = elements;
 
+  let engineSettings = {};
+
   let customUnits = model.customUnits;
   if (customUnits.length) {
-    modelJSON.units = customUnits.map(u => {
+    engineSettings.units = customUnits.map(u => {
       let o = {
         name: u.name,
       };
 
       if (u.target?.trim()) {
         o.base = u.target;
-        o.to_base = u.scale;
+        o.factor = u.scale;
       }
 
       return o;
     });
   }
+
+  if (model.globals?.trim()) {
+    engineSettings.globals = model.globals;
+  }
+
+  if (Object.keys(engineSettings).length) {
+    modelJSON.engine_settings = engineSettings;
+  }
+
 
   let visualizations = [];
   model.visualizations.forEach(display => {
@@ -1118,6 +1147,9 @@ export function loadModelJSON(data) {
           newPrimitive._node.setAttribute("SliderMax", display.interactive_max);
         }
       }
+      if (display.symbol) {
+        newPrimitive._node.setAttribute("Image", `emoji:${display.symbol}`);
+      } 
 
       if (name && type !== "LINK") {
         if (nameMap[name.toLowerCase()]) {
@@ -1135,12 +1167,16 @@ export function loadModelJSON(data) {
   }
 
 
-  if (Array.isArray(data.units)) {
-    model.customUnits = data.units.map(u => ({
+  if (data.engine_settings?.units && Array.isArray(data.engine_settings.units)) {
+    model.customUnits = data.engine_settings.units.map(u => ({
       name: u.name,
       target: ("base" in u) ? u.base : "",
-      scale: ("to_base" in u) ? u.to_base : 1
+      scale: ("factor" in u) ? u.factor : 1
     }));
+  }
+
+  if (data.engine_settings?.globals) {
+    model.globals = data.engine_settings.globals;
   }
 
 

@@ -28,6 +28,10 @@ test("Auto function vectorization", () => {
   expect(() => m.simulate()).toThrow(/requires a number for the parameter/);
 
 
+  variable.value = "sin({\"a\"})";
+  expect(() => m.simulate()).toThrow(/requires a number for the parameter/);
+
+
   variable.value = "log({true})";
   expect(() => m.simulate()).toThrow(/requires a number for the parameter/);
 
@@ -658,6 +662,8 @@ test("Vectors", () => {
   check("select( {4,5} ,  {true,false} )", [4]);
   check("filter({4,5,6,1,7}, x>4)", [5, 6, 7]);
   check("filter({4,5,6,1,7}, function(i) i>4)", [5, 6, 7]);
+  check("map<-3\nfilter({4,5,6,1,7}, x>4)", [5, 6, 7]);
+  check("map<-3\nfilter({4,5,6,1,7}, x>4)\nmap", 3);
   check("z <- {1,2,3}\nfilter(z, x>1)", [2, 3]);
   check("z <- {1,2,3}\nmap(z, x^2)\nz", [1, 2, 3]);
   check("{4,5,6,1,7}.filter(x>4)", [5, 6, 7]);
@@ -1066,6 +1072,8 @@ test("Misc functions", () => {
 
   check("'abc \\n \\\\'", "abc \\n \\\\");
   check("\"abc \\n \\\\\"", "abc \n \\");
+  check("\"abc \\\\n \\\\\"", "abc \\n \\");
+  check("\"\\x\"", "\\x");
 
   check("'1,2,3'.split(',').join('-')", "1-2-3");
   check("'abcd'.indexOf('bc')", 2);
@@ -1079,6 +1087,12 @@ test("Misc functions", () => {
   check("'aBcd '.length()", 5);
   check("'aBcd '.trim().length()", 4);
   check("'123.4'.parse()+1", 124.4);
+
+
+  check("distance({0, 0}, {3, 4})", 5);
+  check("removeunits(distance({ {0 meters}, {0 meters} }, { {3 meters}, {4 meters} }), 'meters')", 5);
+  check("removeunits(distance({ {0 centimeters}, {0 meters} }, { {300 centimeters}, {4 meters} }), 'meters')", 5);
+  check("removeunits(distance({ {0 meters}, {0 centimeters} }, { {3 meters}, {400 centimeters} }), 'meters')", 5);
 
   testConfig.globals = "";
   failure("1.range(4:3)");
@@ -1167,6 +1181,8 @@ test("Misc functions", () => {
   failure("throw 'oops!'");
   failure("if true then\n throw 'oops'\n end if\n 1");
   check("if false then\n throw 'oops'\n end if\n 1", 1);
+  check("if true then\n #comment\n end if\n 1", 1);
+  check("if false then\n #comment\nelse\n2\nend if\n", 2);
   check("try\n 1\n 2\n catch err\n 3\n end try", 2);
   check("try\n  catch err\n 3\n end try", 0);
   check("try\n 1\n throw 'oops!'\n 2\n catch err\n 3\n end try", 3);
@@ -1188,6 +1204,13 @@ it("Nested vectors", () => {
   failure("1{*, sum}", "Can't use");
   failure("true{*, sum}", "Can't use");
   failure("\"a\"{*, sum}", "Can't use");
+
+
+  check(`
+    x <- {1, {2, 3}, 4}
+    x{2,2} <- false
+    x
+  `, [1, [2, false], 4]);
 
 
   failure("{1}{1, sum}", "No element");

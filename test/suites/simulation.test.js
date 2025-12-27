@@ -1610,6 +1610,35 @@ describe.each([
     });
 
 
+    test("Simple vector in variable", () => {
+      let m = new Model({ algorithm });
+
+      let v = m.Variable({
+        name: "My Variable",
+        value: "{a: 1, b: 2, c: 3}"
+      });
+
+      let res = m.simulate();
+      expect(res.series(v)[3]).toEqual({a: 1, b: 2, c: 3});
+    });
+
+
+    test("Vector setting", () => {
+      let m = new Model({ algorithm });
+
+      let v = m.Variable({
+        name: "v",
+        value: `x <- {1,2,3}
+x.foo<-4
+x.foo`
+      });
+
+      let res = m.simulate();
+      expect(res.value(v)).toBe(4);
+
+    });
+
+
     test("Vector in variable", () => {
       let m = new Model({ algorithm });
 

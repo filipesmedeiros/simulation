@@ -59,6 +59,7 @@ export function Rand(simulate, minVal = null, maxVal = null) {
 
     return Rand(simulate) * (maxVal - minVal) + (0 + minVal);
   }
+
   if (simulate.RKOrder === 1) {
     if (simulate.random) {
       return simulate.random();
@@ -87,8 +88,6 @@ export function Rand(simulate, minVal = null, maxVal = null) {
  * @returns {number}
  */
 export function RandNormal(simulate, mu = null, sigma = null) {
-  isNormalNumber(mu, "RandNormal", "mu");
-  isNormalNumber(sigma, "RandNormal", "sigma");
 
   if (mu === null) {
     mu = 0;
@@ -97,9 +96,12 @@ export function RandNormal(simulate, mu = null, sigma = null) {
     sigma = 1;
   }
 
-  let z;
-  z = Math.sqrt(-2 * Math.log(1 - Rand(simulate))) * Math.cos(Rand(simulate) * 2 * Math.PI);
-  return z * sigma + (0 + mu);
+  isNormalNumber(mu, "RandNormal", "mu");
+  isNormalNumber(sigma, "RandNormal", "sigma");
+
+
+  let z = Math.sqrt(-2 * Math.log(1 - Rand(simulate))) * Math.cos(Rand(simulate) * 2 * Math.PI);
+  return z * sigma + mu;
 }
 
 
@@ -378,6 +380,21 @@ export function RandNegativeBinomial(simulate, successes, probability) {
     });
   }
 
+  if (successes === 0) {
+    return 0;
+  }
+  if (probability === 1) {
+    return successes;
+  }
+  if (probability === 0) {
+    // Would never succeed
+    throw new ModelError("<i>Probability</i> for RandNegativeBinomial() cannot be 0 when <i>successes</i> > 0.", {
+      code: 4021
+    });
+  }
+
+
+
   let i = 0;
   let s = 0;
   while (s < successes) {
@@ -464,17 +481,45 @@ export function RandGamma(simulate, alpha, beta) {
     });
   }
   if (beta <= 0) {
-    throw new ModelError(`<i>Beta</i> (rate parameter) for RandGamma() must be greater than 0; got ${beta}.`, {
+    throw new ModelError(`<i>Beta</i> (scale parameter) for RandGamma() must be greater than 0; got ${beta}.`, {
       code: 4009
     });
   }
 
+  // Marsaglia–Tsang method for generating gamma distribution
 
-  let temp = 1;
-  for (let i = 1; i <= alpha; i++) {
-    temp = temp * Rand(simulate);
+  function gammaShapeGe1(a) {
+    const d = a - 1 / 3;
+    const c = 1 / Math.sqrt(9 * d);
+    // eslint-disable-next-line
+    while (true) {
+      const z = RandNormal(simulate, 0, 1);
+      if (!Number.isFinite(z)) continue;
+
+      const t = 1 + c * z;
+      if (t <= 0) continue;
+
+      const v = t * t * t;
+      const u = Rand(simulate);
+      if (!(u > 0 && u < 1)) continue;
+
+      const z2 = z * z;
+      if (u < 1 - 0.0331 * z2 * z2) return d * v;
+
+      if (Math.log(u) < 0.5 * z2 + d * (1 - v + Math.log(v))) return d * v;
+    }
   }
-  return -beta * Math.log(temp);
+
+  let x;
+  if (alpha >= 1) {
+    x = gammaShapeGe1(alpha);
+  } else {
+    const g = gammaShapeGe1(alpha + 1);
+    const u = Math.max(Rand(simulate), Number.EPSILON);
+    x = g * Math.pow(u, 1 / alpha);
+  }
+
+  return x * beta;
 }
 
 
@@ -589,7 +634,7 @@ export function RandDist(simulate, x, y) {
   area = 0;
   for (let i = 0; i < x.length - 1; i++) {
     let nextArea = (x[i + 1] - x[i]) * (y[i + 1] + y[i]) / 2;
-    if (a > area && a < area + nextArea) {
+    if (a >= area && a <= area + nextArea) {
       let neededArea = a - area;
       let slope = (y[i + 1] - y[i]) / (x[i + 1] - x[i]);
       let dist;
@@ -613,6 +658,12 @@ export function RandDist(simulate, x, y) {
  * @param {string} v
  */
 function isNormalNumber(x, name, v) {
+  if (x === null) {
+    throw new ModelError(`The <i>${v}</i> passed to ${name}() was not a number.`, {
+      code: 4018
+    });
+  }
+
   if (isNaN(x)) {
     throw new ModelError(`The <i>${v}</i> passed to ${name}() was not a number.`, {
       code: 4018

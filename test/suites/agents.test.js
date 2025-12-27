@@ -830,6 +830,9 @@ describe.each([
       expect(res.series(v2)[9]).toBe(40 + 9 * 20);
 
 
+      mover.action = "Self.setLocation({{1}, 21})";
+      expect(() => m.simulate()).toThrow(/Location vector does not contain exactly two numbers/);
+
       mover.action = "Self.setLocation({11, 21})";
       res = m.simulate();
       expect(res.series(v)[2]).toBe(11);
@@ -937,6 +940,12 @@ describe.each([
 
       v.value = "setConnectionWeight(findIndex([Population], 1), connected(findIndex([Population], 1)), 5)";
       v2.value = "connectionWeight(findIndex([Population], 1), connected(findIndex([Population], 1))){1}";
+      res = m.simulate();
+      expect(res.series(v)[0]).toBe(1);
+      expect(res.series(v2)[8]).toBe(5);
+
+
+      v2.value = "connectionWeight([Population].findIndex(1).connected(){1}, [Population].findIndex(1))";
       res = m.simulate();
       expect(res.series(v)[0]).toBe(1);
       expect(res.series(v2)[8]).toBe(5);
@@ -1141,7 +1150,51 @@ describe.each([
       expect(() => m.simulate()).toThrow();
     });
 
-    
+    test("Agent connection weights", () => {
+      let m = new Model({ algorithm });
+
+      let f = m.Agent();
+      let p = m.Population({
+        name: "Population",
+        populationSize: 4
+      });
+      m.Link(f, p);
+      p.agentBase = f;
+      f.Variable({
+        name: "weights",
+        value: "sum(join(0,connectionWeight(self, connected(self))))"
+      });
+
+      let action = m.Action({
+        name: "Connect",
+        trigger: "Condition",
+        value: "years == 1",
+        repeat: false,
+        action: `
+        connect(findIndex([Population], 1), findIndex([Population], 2), 10)
+        connect(findIndex([Population], 3), findIndex([Population], 1), 20)
+        connect(findIndex([Population], 1), findIndex([Population], 4), 10000)
+        connect(findIndex([Population], 1), findIndex([Population], 4), 30)
+
+
+        connect(findIndex([Population], 2), findIndex([Population], 3), 40)
+        `
+      });
+      m.Link(p, action);
+
+      let v = m.Variable({
+        name: "Weights",
+        value: "Value([Population], [weights])"
+      });
+      m.Link(p, v);
+
+      let res = m.simulate();
+
+      expect(res.series(v)[0]).toEqual([0, 0, 0, 0]);
+      expect(res.series(v)[10]).toEqual([60, 50, 60, 30]);
+
+    });
+
     test("Vector SetValue with stocks", () => {
       let m = new Model({ algorithm });
       let f = m.Agent();
@@ -1349,6 +1402,62 @@ describe.each([
       expect(res.series(v2)[5]).toBe(5);
       expect(res.series(v2)[6]).toBe(15);
       expect(res.series(v2)[7]).toBe(15);
+    });
+
+
+    test("Adding agents to population", () => {
+      let m = new Model({ algorithm });
+      let f = m.Agent();
+      let p = m.Population({
+        name: "Population",
+        agentBase: f,
+        populationSize: 1
+      });
+
+      m.Link(f, p);
+
+      let v = m.Variable({
+        name: "Count orig",
+        value: "[Population].findState([orig]).count()"
+      });
+
+      m.Link(p, v);
+
+      let ps = m.Variable({
+        name: "Population Size",
+        value: "[Population].populationSize()"
+      });
+
+      m.Link(p, ps);
+
+      let s = f.State({
+        name: "orig",
+        startActive: true
+      });
+
+      f.Transition(s, null, {
+        name: "de-orig",
+        trigger: "Condition",
+        value: "index(self) <> 1"
+      });
+      
+      let a = f.Action({
+        name: "Add",
+        trigger: "Condition",
+        value: "index(self) = 1 and years() = 2",
+        action: "[Population].Add(Self)"
+      });
+
+      m.Link(p, a);
+
+
+      let r = m.simulate();
+
+      expect(r.series(ps)[0]).toBe(1);
+      expect(r.series(v)[0]).toBe(1);
+
+      expect(r.series(ps)[10]).toBe(2);
+      expect(r.series(v)[10]).toBe(1);
     });
 
 

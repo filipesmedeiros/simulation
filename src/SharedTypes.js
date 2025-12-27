@@ -61,3 +61,5 @@
 /**
  * @typedef {"Random"|"Network"|"Grid"|"Ellipse"|"Custom Function"} PlacementType
  */
+
+export {};

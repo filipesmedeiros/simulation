@@ -11,7 +11,9 @@ import { stringify } from "./formula/Utilities.js";
 import Big from "../vendor/bigjs/big.js";
 import { fn } from "./CalcMap.js";
 
-
+/** @typedef {import("./SharedTypes.js").ValueType} ValueType */
+/** @typedef {import("./SharedTypes.js").PlacementType} PlacementType */
+/** @typedef {import("./SharedTypes.js").NetworkType} NetworkType */
 
 export class SPrimitive {
   /**
@@ -61,7 +63,7 @@ export class SPrimitive {
     /** @type {SPrimitive} */
     this.neighborProxyPrimitive = null;
 
-    this.parent = simulate.varBank.get("primitivebase");
+    this.parent = simulate.coreBank.get("primitivebase");
   }
   
 
@@ -1034,7 +1036,7 @@ export class SPopulation extends SPrimitive {
 
     this.constructorFunction = SPopulation;
 
-    this.vector = new Vector([], simulate, [], simulate.varBank.get("primitivebase"));
+    this.vector = new Vector([], simulate, [], simulate.coreBank.get("primitivebase"));
   }
 
   collectData() {
@@ -1242,7 +1244,7 @@ export class SAgent {
 
     this.simulate = simulate;
 
-    this.vector = new Vector([], simulate, [], simulate.varBank.get("agentbase"));
+    this.vector = new Vector([], simulate, [], simulate.coreBank.get("agentbase"));
   }
 
   createIds() {
@@ -1284,8 +1286,9 @@ export class SAgent {
     agent.childrenId = {};
 
     for (let child of this.children) {
-      agent.children.push(child.clone());
-      agent.childrenId[child.dna.id] = child;
+      let newChild = child.clone();
+      agent.children.push(newChild);
+      agent.childrenId[child.dna.id] = newChild;
     }
 
     agent.location = this.location.clone();
@@ -1370,7 +1373,7 @@ export class SAgent {
         }
       } else if (weight !== undefined) {
         this.connectedWeights[this.connected.indexOf(x)] = weight;
-        x.connectedWeights[x.connected.indexOf(x)] = weight;
+        x.connectedWeights[x.connected.indexOf(this)] = weight;
       }
     }
 
@@ -1415,16 +1418,24 @@ export class SAgent {
    * @param {Material} w
    */
   setConnectionWeight(x, w) {
+    let set = false;
     if (x !== this) {
       let i = this.connected.indexOf(x);
       if (i !== -1) {
+        set = true;
         this.connectedWeights[i] = w.fullClone();
-        return;
+      }
+      let j = x.connected.indexOf(this);
+      if (j !== -1) {
+        set = true;
+        x.connectedWeights[j] = w.fullClone();
       }
     }
-    throw new ModelError("Agents are not connected and so do not have a connection weight.", {
-      code: 1109
-    });
+    if (!set) {
+      throw new ModelError("Agents are not connected and so do not have a connection weight.", {
+        code: 1109
+      });
+    }
   }
 }
 
@@ -1461,10 +1472,10 @@ export class SStock extends SPrimitive {
   }
 
   innerClone(p) {
-    p.level = this.level;
-    p.oldLevel = this.oldLevel;
-    p.tasks = this.tasks;
-    p.delay = this.delay;
+    p.level = this.level.fullClone();
+    p.oldLevel = this.oldLevel?.fullClone();
+    p.tasks = this.tasks.slice();
+    p.delay = this.delay?.fullClone();
   }
 
   /**
@@ -1586,7 +1597,7 @@ export class SStock extends SPrimitive {
             return;
           }
 
-          let overlap = minus(this.simulate.varBank.get("min")([delaySpanEnd, eventSpan[1]]), eventSpan[0]);
+          let overlap = minus(this.simulate.coreBank.get("min")([delaySpanEnd, eventSpan[1]]), eventSpan[0]);
           
           this.level = plus(this.level, mult(overlap, this.initRate));
         }
@@ -1885,7 +1896,7 @@ export class SVariable extends SPrimitive {
     }
     if (!x.units) {
       x.units = this.dna.units;
-      x.explcitUnits = true;
+      x.explicitUnits = true;
     }
 
     return x;
@@ -2168,7 +2179,7 @@ export class SFlow extends SPrimitive {
         if (this.omega && this.omega.dna.nonNegative) {
           if (rate instanceof Vector) {
             /** @type {Vector} */
-            let vec = this.simulate.varBank.get("flatten")([plus(toNum(this.omega.level), rate)]);
+            let vec = this.simulate.coreBank.get("flatten")([plus(toNum(this.omega.level), rate)]);
             for (let item of vec.items) {
               if (item instanceof Material && item.value < 0) {
                 throw new ModelError("Inconsistent non-negative constraints for flow.", {

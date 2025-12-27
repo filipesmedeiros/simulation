@@ -18,6 +18,9 @@ import toposort from "../vendor/toposort.js";
 import { Model } from "./api/Model.js";
 
 
+/** @typedef {import("./SharedTypes.js").GraphNode} GraphNode */
+
+
 /**
  * @typedef {SPopulation & { node?: import("./api/Blocks").Primitive }} SubModelType
  */
@@ -50,6 +53,7 @@ import { Model } from "./api/Model.js";
  * @property {function=} handleErrorObject
  * @property {function=} onCompletedFirstPass
  * @property {function(Primitive)=} getColor
+ * @property {function(Primitive)=} getIcon
  * @property {any=} resultsWindow
  * @property {GraphNode=} selectedDisplay
  * @property {number=} rate
@@ -119,7 +123,7 @@ export function checkErr(err, config, simulate) {
 
   if (errOut.error) {
     // remove HTML
-    errOut.error = errOut.error.replace(/<br\s*\/?>/g, "\n").replace(/<[^>]*>?/gm, "").replace("&lt;", "<").replace("&gt;", ">");
+    errOut.error = errOut.error.replace(/<br\s*\/?>/g, "\n").replace(/<[^>]*>?/gm, "").replaceAll("&lt;", "<").replaceAll("&gt;", ">");
   }
 
   if (simulate.evaluatingPosition) {
@@ -665,6 +669,7 @@ function innerRunSimulation(simulate, config) {
       } else {
         simulate.displayInformation.populated = true;
         simulate.displayInformation.colors = [];
+        simulate.displayInformation.icons = [];
         simulate.displayInformation.headers = [];
         simulate.displayInformation.agents = [];
         simulate.displayInformation.displayedItems = [];
@@ -680,10 +685,12 @@ function innerRunSimulation(simulate, config) {
           let object = simulate.displayInformation.objects[i];
           let dna = object.dna;
 
+          let image = dna.primitive._node.getAttribute("Image");
           simulate.displayInformation.displayedItems.push({
             id,
             header: dna.name,
-            type: dna.primitive._node.value.nodeName
+            type: dna.primitive._node.value.nodeName,
+            icon: image?.startsWith("emoji:") ? image.slice(6) : null
           });
 
 
@@ -697,6 +704,7 @@ function innerRunSimulation(simulate, config) {
               ids.push(id);
               simulate.displayInformation.elementIds.push("e" + id + "-" + state);
               simulate.displayInformation.headers.push(innerItem.name);
+              simulate.displayInformation.icons.push(config.getIcon ? config.getIcon(innerItem) : null);
               simulate.displayInformation.colors.push(config.getColor ? config.getColor(innerItem) : "#000000");
               if (simulate.results.children[id].dataMode === "float") {
                 simulate.displayInformation.renderers.push(commaStr);
@@ -720,6 +728,7 @@ function innerRunSimulation(simulate, config) {
           } else if (simulate.results.data.length && simulate.results.data[0][id] instanceof Vector && simulate.results.data[0][id].names) {
 
             let col = config.getColor ? config.getColor(dna.primitive) : "#000000";
+            let icon = config.getIcon ? config.getIcon(dna.primitive) : null;
 
             let names = simulate.results.data[0][id].fullNames();
 
@@ -733,6 +742,7 @@ function innerRunSimulation(simulate, config) {
               ids.push(id);
               simulate.displayInformation.elementIds.push("e" + id + "-" + j);
               simulate.displayInformation.headers.push(dna.name + " (" + names[j] + ")");
+              simulate.displayInformation.icons.push(icon);
               simulate.displayInformation.colors.push(col);
               simulate.displayInformation.renderers.push(commaStr);
             }
@@ -741,6 +751,7 @@ function innerRunSimulation(simulate, config) {
             ids.push(id);
             simulate.displayInformation.elementIds.push("e" + id);
             simulate.displayInformation.headers.push(dna.name);
+            simulate.displayInformation.icons.push(config.getIcon ? config.getIcon(dna.primitive) : null);
             simulate.displayInformation.colors.push(config.getColor ? config.getColor(dna.primitive) : "#000000");
             if (simulate.results.children[id].dataMode === "float") {
               simulate.displayInformation.renderers.push(commaStr);
@@ -1254,6 +1265,22 @@ function getDNA(node, submodel, solvers, simulate) {
         });
       }
     }
+    if (dna.residency) {
+      if (!(dna.residency instanceof Material)) {
+        throw new ModelError("State residency must be a number.", {
+          primitive: node,
+          showEditor: false,
+          code: 1271
+        }); 
+      }
+      if (dna.residency.value < 0) {
+        throw new ModelError("State residency cannot be less than 0.", {
+          primitive: node,
+          showEditor: false,
+          code: 1272
+        }); 
+      }
+    }
   } else if (node instanceof Stock) {
     dna.nonNegative = node.nonNegative;
     if (node.type === "Conveyor") {
@@ -1405,7 +1432,6 @@ function folderSolvers(node, solvers) {
  * @param {SAgent} agent
  * @param {import("./Simulator").Simulator} simulate
  * @param {boolean} inContainer
- * 
  */
 export function decodeDNA(dna, agent, simulate, inContainer) {
   /** @type {SPrimitive} */
@@ -1737,7 +1763,7 @@ function buildPlacements(submodel, simulate) {
       let xPos = (j % wCount + 0.5) / wCount;
       let yPos = (Math.floor(j / wCount) + 0.5) / hCount;
       // @ts-ignore
-      s.location = simpleUnitsTest(/** @type {Vector} */(simpleEquation("{x: x*width(self), y: y*height(self)}", simulate, new Map([
+      s.location = simpleUnitsTest(/** @type {Vector} */(simpleEquation(null, simulate, new Map([
         ["self", s],
         ["x", new Material(xPos)],
         ["y", new Material(yPos)],
@@ -1750,7 +1776,7 @@ function buildPlacements(submodel, simulate) {
     let size = new Material(submodel.agents.length);
     submodel.agents.forEach((s) => {
       // @ts-ignore
-      s.location = simpleUnitsTest(/** @type {Vector} */(simpleEquation("{width(self), height(self)}/2+{sin(index(self)/size*2*3.14159), cos(index(self)/size*2*3.14159)}*{width(self), heigh(self)}/2", simulate, new Map([
+      s.location = simpleUnitsTest(/** @type {Vector} */(simpleEquation(null, simulate, new Map([
         ["self", s],
         ["size", size],
         [PARENT_SYMBOL, simulate.varBank]
@@ -1806,7 +1832,7 @@ function buildPlacements(submodel, simulate) {
     layout.eachNode((node, point) => {
       let p = scalePoint(point.p);
       // @ts-ignore
-      node.data.data.location = simpleUnitsTest(simpleEquation("{x: x*width(self), y: y*height(self)}", simulate, new Map([
+      node.data.data.location = simpleUnitsTest(simpleEquation(null, simulate, new Map([
         ["self", submodel],
         ["x", new Material(p.x)],
         ["y", new Material(p.y)],
@@ -2075,9 +2101,10 @@ export function validateAgentLocation(location, primitive) {
 }
 
 /**
- * @param {import("./Simulator").Simulator} simulate} simulate
+ * @param {import("./Simulator").Simulator} simulate
  */
 function makeClusters(simulate) {
+  /** @type {Object<string, { cluster: number, flow: number }>} */
   let ordering = {};
 
   let flows = simulate.model.findFlows();

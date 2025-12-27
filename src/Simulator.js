@@ -47,7 +47,7 @@ import Big from "../vendor/bigjs/big.js";
  * @property {number=} periods
  * @property {function=} resume
  * @property {function=} setValue
- * @property {Object<string, { indexedNames?: string[], indexedFullNames?: string[], results?: ResultsResultsType[], states?: Set<string>, dataMode?: "auto"|"agents"|"float", data?: ResultsDataType}>=} children
+ * @property {Object<string, { indexedNames?: string[], indexedFullNames?: any[], results?: ResultsResultsType[], states?: Set<string>, dataMode?: "auto"|"agents"|"float", data?: ResultsDataType}>=} children
  */
 
 /**
@@ -74,9 +74,10 @@ import Big from "../vendor/bigjs/big.js";
  * @property {boolean=} populated
  * @property {string[]=} ids
  * @property {string[]=} colors
+ * @property {string[]=} icons
  * @property {string[]=} headers
  * @property {AgentResultsType[]=} agents
- * @property {{header: string, id: string, type: string}[]=} displayedItems
+ * @property {{header: string, id: string, type: string, icon: string}[]=} displayedItems
  * @property {function[]=} renderers
  * @property {string[]=} elementIds
  * @property {ResultsType=} res
@@ -164,6 +165,11 @@ export class Simulator {
     /** @type {{ line: number, source: string }} */
     this.evaluatingPosition = null;
 
+    // Used for canonical functions we want a reference to even if users
+    // override them.
+    /** @type {Map<import("./formula/Formula.js").PARENT_SYMBOL|string, any>} */
+    this.coreBank = new Map();
+
     /** @type {Map<import("./formula/Formula.js").PARENT_SYMBOL|string, any>} */
     this.varBank = new Map();
 
@@ -172,7 +178,7 @@ export class Simulator {
     /** @type {function} */
     this.random = null;
 
-    /** any[][] */
+    /** @type {Object<string, { cluster: number, flow: number }>} */
     this.clusters = null;
 
     /** @type {string} */

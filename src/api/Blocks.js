@@ -2,6 +2,11 @@ import { ModelError } from "../formula/ModelError.js";
 import { isTrue } from "../Utilities.js";
 
 
+/** @typedef {import("../SharedTypes.js").TriggerType} TriggerType */
+/** @typedef {import("../SharedTypes.js").StockTypeType} StockTypeType */
+/** @typedef {import("../SharedTypes.js").PlacementType} PlacementType */
+/** @typedef {import("../SharedTypes.js").NetworkType} NetworkType */
+
 /**
  * @typedef {string|number} Value
  */
@@ -545,8 +550,8 @@ export class Converter extends ValuedPrimitive {
 /**
  * @typedef {object} FlowConfig
  * @property {Value=} rate
- * @property {Stock=} start
- * @property {Stock=} end
+ * @property {Stock|null=} start
+ * @property {Stock|null=} end
  * @property {boolean=} nonNegative
  */
 
@@ -612,8 +617,8 @@ export class Flow extends ValuedPrimitive {
 /**
  * @typedef {object} LinkConfig
  * @property {boolean=} biDirectional
- * @property {Primitive=} start
- * @property {Primitive=} end
+ * @property {Primitive|null=} start
+ * @property {Primitive|null=} end
  */
 
 export class Link extends Primitive {
@@ -702,8 +707,8 @@ export class State extends ValuedPrimitive {
 /**
  * @typedef {object} TransitionConfig
  * @property {Value=} value
- * @property {State=} start
- * @property {State=} end
+ * @property {State|null=} start
+ * @property {State|null=} end
  * @property {boolean=} recalculate
  * @property {boolean=} repeat
  * @property {TriggerType=} trigger

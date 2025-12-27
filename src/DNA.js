@@ -1,3 +1,7 @@
+
+/** @typedef {import("./SharedTypes.js").TriggerType} TriggerType */
+/** @typedef {import("./SharedTypes.js").StockTypeType} StockTypeType */
+
 export class DNA {
   /**
    * @param {import("./api/Blocks").Primitive} primitive

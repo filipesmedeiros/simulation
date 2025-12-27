@@ -1,3 +1,6 @@
+
+/** @typedef {import("../SharedTypes.js").GraphNode} GraphNode */
+
 export class ModelError extends Error {
   /**
    * @param {string} message

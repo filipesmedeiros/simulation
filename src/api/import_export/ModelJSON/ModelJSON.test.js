@@ -149,6 +149,26 @@ test("Invalid ModelJSON", () => {
 
 
   expect(() => loadModelJSON({
+    engine_settings: {
+      globals: true
+    },
+    elements: [
+      
+    ]
+  })).toThrow("requires a string value");
+
+
+  expect(() => loadModelJSON({
+    engine_settings: {
+      units: true
+    },
+    elements: [
+      
+    ]
+  })).toThrow("requires an array value");
+
+
+  expect(() => loadModelJSON({
     engine: "INVALID",
     elements: [ ]
   })).toThrow("Invalid value \"INVALID\" given for \"engine\"");

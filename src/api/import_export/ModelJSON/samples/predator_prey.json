@@ -19,6 +19,7 @@
                 "units": "Prey"
             },
             "display": {
+                "symbol": "🐰",
                 "interactive": true,
                 "interactive_min": 0,
                 "interactive_max": 1000,
@@ -113,6 +114,7 @@
                 "units": "Predators"
             },
             "display": {
+                "symbol": "🦊",
                 "interactive": true,
                 "interactive_min": 0,
                 "interactive_max": 100,

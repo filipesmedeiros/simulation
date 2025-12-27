@@ -13,7 +13,7 @@ export class Material {
   constructor(value, units, explicitUnits=true) {
     /** @type {number} */
     this.value = value;
-    /** @type {import("./Units").UnitStore} */
+    /** @type {import("./Units").UnitStore|undefined} */
     this.units = units;
     /** @type {boolean} */
     this.explicitUnits = explicitUnits;

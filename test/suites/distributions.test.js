@@ -97,6 +97,11 @@ test("Random number generation", () => {
 
   check("round(randBinomial(100000, .8)/100000*100)", 80);
 
+  check("round(mean(repeat(randNegativeBinomial(5, 0.25), 200000)))", 20);
+  check("round(mean(repeat(randNegativeBinomial(3, 0.75), 200000))*10)", 40);
+  check("randNegativeBinomial(0, 0.3)", 0);
+  check("randNegativeBinomial(7, 1.0)", 7);
+
   check("round(sum(repeat(ifThenElse(randBoolean(.3),1,0),2000))/200)", 3);
 
   check("round(mean(repeat(randPoisson(0.12), 10000))*100)", 12);
@@ -113,8 +118,25 @@ test("Random number generation", () => {
   check("round(mean(repeat(randDist({0, 1}, {1, 4}), 20000))*10)", 6);
   check("round(mean(repeat(randDist({0, 1, 2}, {1, 4, 1}), 20000))*10)", 10);
 
+  check("round(mean(repeat(randDist({0, 1, 2}, {0, 1, 0}), 20000))*10)", 10);
+  check("round(mean(repeat(randDist({ 1, 2, 2, 3, 3, 4 }, { 2, 2, 0, 0, 2, 2 }), 20000))*10)", 25);
+  check("round(mean(repeat(randDist({0, 1, 2}, {0, 1, 0}), 20000))*10)", 10);
+  check("round(mean(repeat(randDist({ 0, 1, 3, 4 }, { 0, 2, 2, 0 }), 20000))*10)", 20);
+
+
+
+  check("round(mean(repeat(randGamma(1, 1), 200000))*10)", 10);
+  check("round(mean(repeat(randGamma(5, 0.5), 200000))*100)", 250);
+  check("round(mean(repeat(randGamma(4, 2), 200000))*10)", 80);
+  check("round(mean(repeat(randGamma(2.5, 1), 200000))*10)", 25);
+  check("round(mean(repeat(randGamma(0.7, 2), 300000))*100)", 140);
+
+
   check("round(mean(repeat(randBeta(1, 2), 20000))*10)", Math.round((1/(1+2/1))*10));
   check("round(mean(repeat(randBeta(2, 1), 20000))*10)", Math.round((1/(1+1/2))*10));
+  check("round(mean(repeat(randBeta(2.5, 3.5), 20000))*100)", 42);
+  check("round(mean(repeat(randBeta(0.7, 0.3), 20000))*100)", 70);
+
 
 
   check("round(mean(repeat(randnormal({a: 0, b:10}, {a: .1, b: .2}){\"a\"}, 10000))*10)", 0);

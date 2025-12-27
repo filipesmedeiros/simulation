@@ -14,7 +14,7 @@ Copy this HTML into an *index.html* file and open it in your browser.
 <script type="importmap">
   {
     "imports": {
-      "simulation": "https://unpkg.com/simulation@7.0.0",
+      "simulation": "https://unpkg.com/simulation@8.0.0",
       "chart.js": "https://unpkg.com/chart.js@3.9.1/dist/chart.esm.js"
     }
   }
@@ -95,7 +95,8 @@ import { Model } from "simulation";
 import { table, plot } from "simulation-viz-console";
 ```
 
-**Tip: If you get the error `SyntaxError: Cannot use import statement outside a module` when running this in Node, add `"type": "module"` to your `package.json` or change your file extension from `.js` to `.mjs`. See [here](https://nodejs.org/api/esm.html#enabling) for more information.**
+> [!NOTE]
+> If you get the error `SyntaxError: Cannot use import statement outside a module` when running this in Node, add `"type": "module"` to your `package.json` or change your file extension from `.js` to `.mjs`. See [here](https://nodejs.org/api/esm.html#enabling) for more information.
 
 Next, we initialize a model:
 
@@ -107,7 +108,8 @@ let m = new Model({
 });
 ```
 
-**Tip: Use VSCode or another editor that supports JSDoc type annotations. `simulation` makes extensive use of type annotations to indicate available options. Add `// @ts-check` to the top of a JavaScript file in VSCode to enable automatic type checking of the code, this will help catch errors.**
+> [!TIP]
+> Use VSCode or another editor that supports JSDoc type annotations. `simulation` makes extensive use of type annotations to indicate available options. Add `// @ts-check` to the top of a JavaScript file in VSCode to enable automatic type checking of the code, this will help catch errors.
 
 This creates a model that will simulate 100 years, starting at the year 2020.
 

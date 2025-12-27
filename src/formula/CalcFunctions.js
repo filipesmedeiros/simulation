@@ -27,7 +27,7 @@ export function createFunctions(simulate) {
       xVals = [];
       yVals = [];
       for (let i = 0; i < vec.items.length; i++) {
-        if (!(vec.items[i] instanceof Vector)) {
+        if (!(vec.items[i] instanceof Vector) || vec.items[i].items.length !== 2) {
           throw new ModelError("Invalid vector provided to RandDist.", {
             code: 6000
           });
@@ -105,17 +105,17 @@ export function createFunctions(simulate) {
   });
 
   defineFunction(simulate, "Magnitude", { params: [{ name: "Vector", needVector: true }] }, (x) => {
-    return simulate.varBank.get("sqrt")([simulate.varBank.get("sum")([mult(x[0], x[0])])]);
+    return simulate.coreBank.get("sqrt")([simulate.coreBank.get("sum")([mult(x[0], x[0])])]);
   });
 
 
 
-  defineFunction(simulate, "Abs", { params: [{ name: "Number" }], recurse: true, leafNeedNum: true }, (x) => {
+  defineFunction(simulate, "Abs", { params: [{ name: "Number", leafNeedNum: true }], recurse: true }, (x) => {
     let r = toNum(x[0]);
     r.value = fn.abs(r.value);
     return r;
   });
-  defineFunction(simulate, "sin", { params: [{ name: "Number" }], recurse: true, leafNeedNum: true }, (x) => {
+  defineFunction(simulate, "sin", { params: [{ name: "Number", leafNeedNum: true }], recurse: true}, (x) => {
     let z = toNum(x[0]);
 
     if (z.units && !z.units.isUnitless()) {
@@ -129,7 +129,7 @@ export function createFunctions(simulate) {
       });
     }
   });
-  defineFunction(simulate, "cos", { params: [{ name: "Number" }], recurse: true, leafNeedNum: true }, (x) => {
+  defineFunction(simulate, "cos", { params: [{ name: "Number", leafNeedNum: true }], recurse: true }, (x) => {
     let z = toNum(x[0]);
 
     if (z.units && !z.units.isUnitless()) {
@@ -143,7 +143,7 @@ export function createFunctions(simulate) {
       });
     }
   });
-  defineFunction(simulate, "tan", { params: [{ name: "Number" }], recurse: true, leafNeedNum: true }, (x) => {
+  defineFunction(simulate, "tan", { params: [{ name: "Number", leafNeedNum: true }], recurse: true }, (x) => {
     let z = toNum(x[0]);
 
     if (z.units && !z.units.isUnitless()) {
@@ -157,7 +157,7 @@ export function createFunctions(simulate) {
       });
     }
   });
-  defineFunction(simulate, "asin", { params: [{ name: "Number", noUnits: true }], recurse: true, leafNeedNum: true }, (x) => {
+  defineFunction(simulate, "asin", { params: [{ name: "Number", noUnits: true, leafNeedNum: true }], recurse: true }, (x) => {
 
     let val = toNum(x[0]).value;
     if (val < -1 || val > 1) {
@@ -168,7 +168,7 @@ export function createFunctions(simulate) {
 
     return new Material(fn.asin(val));
   });
-  defineFunction(simulate, "acos", { params: [{ name: "Number", noUnits: true }], recurse: true, leafNeedNum: true }, (x) => {
+  defineFunction(simulate, "acos", { params: [{ name: "Number", noUnits: true, leafNeedNum: true }], recurse: true }, (x) => {
     let val = toNum(x[0]).value;
     if (val < -1 || val > 1) {
       throw new ModelError("acos() input must be between -1 and 1.", {
@@ -178,11 +178,11 @@ export function createFunctions(simulate) {
 
     return new Material(fn.acos(val));
   });
-  defineFunction(simulate, "atan", { params: [{ name: "Number", noUnits: true }], recurse: true, leafNeedNum: true }, (x) => {
+  defineFunction(simulate, "atan", { params: [{ name: "Number", noUnits: true, leafNeedNum: true }], recurse: true }, (x) => {
     return new Material(fn.atan(toNum(x[0]).value));
   });
 
-  defineFunction(simulate, "arcsin", { params: [{ name: "Number", noUnits: true }], recurse: true, leafNeedNum: true }, (x) => {
+  defineFunction(simulate, "arcsin", { params: [{ name: "Number", noUnits: true, leafNeedNum: true }], recurse: true }, (x) => {
     let val = toNum(x[0]).value;
     if (val < -1 || val > 1) {
       throw new ModelError("arcsin() input must be between -1 and 1.", {
@@ -209,9 +209,9 @@ export function createFunctions(simulate) {
   defineFunction(simulate, "Sign", { params: [{ name: "Number", leafNeedNum: true }], recurse: true }, (x) => {
     let r = toNum(x[0]);
     if (r.value < 0) {
-      return div(new Material(-1), new Material(1));
+      return new Material(-1);
     } else if (r.value > 0) {
-      return div(new Material(1), new Material(1));
+      return new Material(1);
     } else if (r.value === 0) {
       return new Material(0);
     }
@@ -252,7 +252,7 @@ export function createFunctions(simulate) {
   });
   defineFunction(simulate, "Logit", { params: [{ name: "Number", noUnits: true, leafNeedNum: true }], recurse: true }, (x) => {
     let r = toNum(x[0]);
-    ;
+
     if (r.value < 0 || r.value > 1) {
       throw new ModelError("Logit() requires an input between 0 and 1 (inclusive).", {
         code: 6079
@@ -348,6 +348,7 @@ export function createFunctions(simulate) {
     }
   });
   simulate.varBank.get("ifthenelse").delayEvalParams = true;
+  simulate.coreBank.set("ifthenelse", simulate.varBank.get("ifthenelse"));
 
 
   simulate.varBank.set("assert", function (x) {
@@ -364,6 +365,7 @@ export function createFunctions(simulate) {
     }
   });
   simulate.varBank.get("assert").delayEvalParams = true;
+  simulate.coreBank.set("assert", simulate.varBank.get("assert"));
 
   function vecIfThenElse(test, tVal, fVal) {
 
@@ -465,6 +467,7 @@ export function createFunctions(simulate) {
   });
   simulate.varBank.get("map").delayEvalParams = true;
   VectorObject["map"] = simulate.varBank.get("map");
+  simulate.coreBank.set("map", simulate.varBank.get("map"));
 
   defineFunction(simulate, "Sample", { object: [simulate.varBank, VectorObject], params: [{ name: "Vector", needVector: true }, { name: "Sample Size" }, { name: "Repeat", noVector: true, allowBoolean: true, defaultVal: false }] }, (x) => {
     let v = toNum(x[0]);
@@ -523,7 +526,7 @@ export function createFunctions(simulate) {
   ] }, (x) => {
     if (eq(
       new Material(0),
-      simulate.varBank.get("indexof")([new Vector(flatten(x[0]).items, simulate), x[1]])
+      simulate.coreBank.get("indexof")([new Vector(flatten(x[0]).items, simulate), x[1]])
     )) {
       return false;
     } else {
@@ -566,11 +569,12 @@ export function createFunctions(simulate) {
     }
     v = v.fullClone();
 
-    let t = simulate.varBank.get("map")(x);
-    return simulate.varBank.get("select")([v, t]);
+    let t = simulate.coreBank.get("map")(x);
+    return simulate.coreBank.get("select")([v, t]);
   });
   simulate.varBank.get("filter").delayEvalParams = true;
   VectorObject["filter"] = simulate.varBank.get("filter");
+  simulate.coreBank.set("filter", simulate.varBank.get("filter"));
 
   simulate.varBank.set("join", function (x) {
     let res = [];
@@ -600,6 +604,7 @@ export function createFunctions(simulate) {
     }
     return new Vector(res, simulate, hasNames ? names : undefined);
   });
+  simulate.coreBank.set("join", simulate.varBank.get("join"));
 
   simulate.varBank.set("repeat", function (x) {
     testArgumentsSize(x, "Repeat", 2, 2);
@@ -664,6 +669,7 @@ export function createFunctions(simulate) {
     return new Vector(res, simulate, items instanceof Vector ? items.items.slice() : undefined);
   });
   simulate.varBank.get("repeat").delayEvalParams = true;
+  simulate.coreBank.set("repeat", simulate.varBank.get("repeat"));
 
   defineFunction(simulate, "Select", { params: [{ name: "Haystack", needVector: true, noUnits: true }, { name: "Indexes", noUnits: true }] }, (x) => {
     if (x[1] instanceof Vector) {
@@ -677,7 +683,7 @@ export function createFunctions(simulate) {
       }
       if (isBoolean === true) {
         let res = [];
-        let names = x[0].names ? [] : undefined;
+        let names = x[0].names ? /** @type {string[]} */ ([]) : undefined;
         if (v.length() !== x[0].length()) {
           throw new ModelError("Length of vector must be equal for boolean selection.", {
             code: 6014
@@ -687,7 +693,7 @@ export function createFunctions(simulate) {
           if (trueValue(v.items[i])) {
             res.push(x[0].items[i]);
 
-            if (x[0].names) {
+            if (names) {
               names.push(x[0].names[i]);
             }
           }
@@ -695,7 +701,7 @@ export function createFunctions(simulate) {
         return new Vector(res, simulate, names);
       } else {
         let res = [];
-        let names = x[0].names ? [] : undefined;
+        let names = x[0].names ? /** @type {string[]} */ ([]) : undefined;
         for (let i = 0; i < v.length(); i++) {
           let q = v.items[i].value;
           if (q <= 0 || q > x[0].length()) {
@@ -705,7 +711,7 @@ export function createFunctions(simulate) {
           }
           res.push(x[0].items[q - 1]);
 
-          if (x[0].names) {
+          if (names) {
             names.push(x[0].names[q - 1]);
           }
         }
@@ -723,19 +729,19 @@ export function createFunctions(simulate) {
   });
 
   defineFunction(simulate, "Reverse", {
-    allowEmpty: true, params: { name: "Items..." }, prep: function (x) {
-      return simulate.varBank.get("join")(x);
+    allowEmpty: true, param: { name: "Items..." }, prep: function (x) {
+      return simulate.coreBank.get("join")(x);
     }
   }, (x) => {
     return new Vector(x.items.slice().reverse(), simulate, x.names ? x.names.slice().reverse() : undefined);
   });
   defineFunction(simulate, "Reverse", { object: VectorObject, params: [{ name: "Vector", needVector: true }] }, (x) => {
-    return simulate.varBank.get("reverse")(x);
+    return simulate.coreBank.get("reverse")(x);
   });
 
   defineFunction(simulate, "Sort", {
-    allowEmpty: true, params: { name: "Items..." }, prep: function (x) {
-      return toNum(simulate.varBank.get("join")(x));
+    allowEmpty: true, param: { name: "Items..." }, prep: function (x) {
+      return toNum(simulate.coreBank.get("join")(x));
     }
   },
   /**
@@ -760,13 +766,13 @@ export function createFunctions(simulate) {
       });
 
 
-      let names = x.names ? [] : undefined;
+      let names = x.names ? /** @type {string[]} */ ([]) : undefined;
       items = [];
 
       for (let i = 0; i < res.length; i++) {
         items.push(res[i].item);
         if (names) {
-          names.push(res[i].name);
+          names.push(/** @type {string} */ (res[i].name));
         }
       }
 
@@ -776,12 +782,12 @@ export function createFunctions(simulate) {
     return res;
   });
   defineFunction(simulate, "Sort", { object: VectorObject, params: [{ name: "Vector", needVector: true }] }, (x) => {
-    return simulate.varBank.get("sort")(x);
+    return simulate.coreBank.get("sort")(x);
   });
 
   defineFunction(simulate, "Unique", {
-    allowEmpty: true, params: { name: "Items....", allowBoolean: true }, prep: function (x) {
-      return toNum(simulate.varBank.get("join")(x));
+    allowEmpty: true, param: { name: "Items...", allowBoolean: true }, prep: function (x) {
+      return toNum(simulate.coreBank.get("join")(x));
     }
   }, (x) => {
     if (!x.items.length) {
@@ -789,7 +795,7 @@ export function createFunctions(simulate) {
     }
 
     let res = [];
-    let names = x.names ? [] : undefined;
+    let names = x.names ? /** @type {string[]} */ ([]) : undefined;
 
     for (let i = 0; i < x.items.length; i++) {
       let found = false;
@@ -811,12 +817,12 @@ export function createFunctions(simulate) {
     return new Vector(res, simulate, names);
   });
   defineFunction(simulate, "Unique", { object: VectorObject, params: [{ name: "Vector", needVector: true }] }, (x) => {
-    return simulate.varBank.get("unique")(x);
+    return simulate.coreBank.get("unique")(x);
   });
 
 
   defineFunction(simulate, "Union", { object: [simulate.varBank, VectorObject], params: [{ name: "Vector 1", needVector: true }, { name: "Vector 2", needVector: true }] }, (x) => {
-    return simulate.varBank.get("unique")(simulate.varBank.get("join")(x).items);
+    return simulate.coreBank.get("unique")(simulate.coreBank.get("join")(x).items);
   });
 
   defineFunction(simulate, "Intersection", { object: [simulate.varBank, VectorObject], params: [{ name: "Vector 1", needVector: true }, { name: "Vector 2", needVector: true }] }, (x) => {
@@ -833,7 +839,7 @@ export function createFunctions(simulate) {
         }
       }
     }
-    return simulate.varBank.get("unique")(res);
+    return simulate.coreBank.get("unique")(res);
   });
 
 
@@ -868,14 +874,14 @@ export function createFunctions(simulate) {
       }
     }
 
-    return simulate.varBank.get("unique")(res);
+    return simulate.coreBank.get("unique")(res);
   });
 
   defineFunction(simulate, "Factorial", { params: [{ name: "Number", noUnits: true, leafNeedNum: true }], recurse: true }, (x) => {
     return new Material(factorial(toNum(x[0]).value));
   });
 
-  defineFunction(simulate, "Max", { params: { name: "Items..." }, prep: joinVector }, (x) => {
+  defineFunction(simulate, "Max", { param: { name: "Items..." }, prep: joinVector }, (x) => {
 
     let res = x.stackApply((v) => {
       let x = v.items;
@@ -897,7 +903,7 @@ export function createFunctions(simulate) {
     return res;
   });
   defineFunction(simulate, "Max", { object: VectorObject, params: [{ name: "Vector", needVector: true }] }, (x) => {
-    return simulate.varBank.get("max")(x);
+    return simulate.coreBank.get("max")(x);
   });
 
   function joinVector(x, notToNum, skip) {
@@ -910,7 +916,7 @@ export function createFunctions(simulate) {
       if (skip) {
         return x[0];
       } else {
-        return simulate.varBank.get("flatten")([x[0]]);
+        return simulate.coreBank.get("flatten")([x[0]]);
       }
     } else {
       return new Vector(scalarsToVectors(x), simulate);
@@ -923,7 +929,7 @@ export function createFunctions(simulate) {
       }
     }
     if (x.length === 1 && x[0] instanceof Vector) {
-      return simulate.varBank.get("flatten")([toNum(x[0])]).items;
+      return simulate.coreBank.get("flatten")([toNum(x[0])]).items;
     }
     return joinVector(x, undefined, true).items;
   }
@@ -1017,7 +1023,7 @@ export function createFunctions(simulate) {
     return replicateVectorStructure(x[0], x[1]);
   });
 
-  defineFunction(simulate, "Min", { params: { name: "Items..." }, prep: joinVector },
+  defineFunction(simulate, "Min", { param: { name: "Items..." }, prep: joinVector },
     /**
      * @param {Vector} x
      * @returns
@@ -1044,9 +1050,9 @@ export function createFunctions(simulate) {
       return res;
     });
   defineFunction(simulate, "Min", { object: VectorObject, params: [{ name: "Vector", needVector: true }] }, (x) => {
-    return simulate.varBank.get("min")(x);
+    return simulate.coreBank.get("min")(x);
   });
-  defineFunction(simulate, "Mean", { params: { name: "Items..." }, prep: joinArray },
+  defineFunction(simulate, "Mean", { param: { name: "Items..." }, prep: joinArray },
     /**
      * @param {any[]} x
      * @returns
@@ -1059,9 +1065,9 @@ export function createFunctions(simulate) {
       return div(sum, new Material(x.length));
     });
   defineFunction(simulate, "Mean", { object: VectorObject, params: [{ name: "Vector", needVector: true }] }, (x) => {
-    return simulate.varBank.get("mean")(x);
+    return simulate.coreBank.get("mean")(x);
   });
-  defineFunction(simulate, "Sum", { params: { name: "Items..." }, prep: joinArray },
+  defineFunction(simulate, "Sum", { param: { name: "Items..." }, prep: joinArray },
     /**
      * @param {any[]} x
      * @returns
@@ -1076,9 +1082,9 @@ export function createFunctions(simulate) {
       return sum;
     });
   defineFunction(simulate, "Sum", { object: VectorObject, params: [{ name: "Vector", needVector: true }] }, (x) => {
-    return simulate.varBank.get("sum")(x);
+    return simulate.coreBank.get("sum")(x);
   });
-  defineFunction(simulate, "Product", { params: { name: "Items..." }, prep: joinArray }, (x) => {
+  defineFunction(simulate, "Product", { param: { name: "Items..." }, prep: joinArray }, (x) => {
     let total = x[0];
     for (let i = 1; i < x.length; i++) {
       total = mult(total, x[i]);
@@ -1086,12 +1092,12 @@ export function createFunctions(simulate) {
     return total;
   });
   defineFunction(simulate, "Product", { object: VectorObject, params: [{ name: "Vector", needVector: true }] }, (x) => {
-    return simulate.varBank.get("product")(x);
+    return simulate.coreBank.get("product")(x);
   });
-  defineFunction(simulate, "Median", { params: { name: "Items..." }, prep: joinVector }, (x) => {
+  defineFunction(simulate, "Median", { param: { name: "Items..." }, prep: joinVector }, (x) => {
     let res = x.stackApply((v) => {
       /** @type {Material[]} */
-      let x = simulate.varBank.get("sort")([v]).items;
+      let x = simulate.coreBank.get("sort")([v]).items;
       if (x.length > 0) {
         if (Math.floor((x.length - 1) / 2) === (x.length - 1) / 2) {
           return x[(x.length - 1) / 2];
@@ -1107,14 +1113,14 @@ export function createFunctions(simulate) {
     return res;
   });
   defineFunction(simulate, "Median", { object: VectorObject, params: [{ name: "Vector", needVector: true }] }, (x) => {
-    return simulate.varBank.get("median")(x);
+    return simulate.coreBank.get("median")(x);
   });
-  defineFunction(simulate, "StdDev", { params: { name: "Items..." }, prep: joinVector }, (x) => {
+  defineFunction(simulate, "StdDev", { param: { name: "Items..." }, prep: joinVector }, (x) => {
     let res = x.stackApply((v) => {
       let x = v.items;
       if (x.length > 1) {
 
-        let mean = simulate.varBank.get("mean")(x);
+        let mean = simulate.coreBank.get("mean")(x);
         let sum = power(minus(x[0], mean), new Material(2));
 
         for (let i = 1; i < x.length; i++) {
@@ -1132,7 +1138,7 @@ export function createFunctions(simulate) {
     return res;
   });
   defineFunction(simulate, "StdDev", { object: VectorObject, params: [{ name: "Vector", needVector: true }] }, (x) => {
-    return simulate.varBank.get("stddev")(x);
+    return simulate.coreBank.get("stddev")(x);
   });
   defineFunction(simulate, "Correlation", { params: [{ name: "Vector 1", needVector: true }, { name: "Vector 2", needVector: true }] }, (x) => {
     let v1 = toNum(x[0]);
@@ -1150,26 +1156,28 @@ export function createFunctions(simulate) {
     }
 
 
-    let v1Mean = simulate.varBank.get("mean")([v1]);
-    let v2Mean = simulate.varBank.get("mean")([v2]);
+    let v1Mean = simulate.coreBank.get("mean")([v1]);
+    let v2Mean = simulate.coreBank.get("mean")([v2]);
 
-    let v1StdDev = simulate.varBank.get("stddev")([v1]);
-    let v2StdDev = simulate.varBank.get("stddev")([v2]);
+    let v1StdDev = simulate.coreBank.get("stddev")([v1]);
+    let v2StdDev = simulate.coreBank.get("stddev")([v2]);
 
     if (v1StdDev.value === 0 || v2StdDev.value === 0) {
       return new Material(0);
     }
 
-    return div(simulate.varBank.get("sum")([mult(minus(v1.clone(), v1Mean), minus(v2.clone(), v2Mean))]), mult(minus(simulate.varBank.get("count")([v1]), new Material(1)), mult(v1StdDev, v2StdDev)));
+    return div(simulate.coreBank.get("sum")([mult(minus(v1.clone(), v1Mean), minus(v2.clone(), v2Mean))]), mult(minus(simulate.coreBank.get("count")([v1]), new Material(1)), mult(v1StdDev, v2StdDev)));
   });
   simulate.varBank.set("count", function (x) {
-    x = simulate.varBank.get("join")(x).items;
+    x = simulate.coreBank.get("join")(x).items;
     return new Material(x.length);
   });
+  simulate.coreBank.set("count", simulate.varBank.get("count"));
   simulate.varBank.set("flatten", function (x) {
-    let res = flatten(simulate.varBank.get("join")(x));
+    let res = flatten(simulate.coreBank.get("join")(x));
     return new Vector(res.items, simulate, res.hasName ? res.names : undefined);
   });
+  simulate.coreBank.set("flatten", simulate.varBank.get("flatten"));
 
   defineFunction(simulate, "Keys", { object: VectorObject, params: [{ name: "Vector", needVector: true }] }, (x) => {
     if (!x[0].names) {
@@ -1187,7 +1195,7 @@ export function createFunctions(simulate) {
     return new Material(x[0].items.length);
   });
   defineFunction(simulate, "Flatten", { object: VectorObject, params: [{ name: "Vector", needVector: true }] }, (x) => {
-    return simulate.varBank.get("flatten")(x);
+    return simulate.coreBank.get("flatten")(x);
   });
 
   /**
@@ -1564,10 +1572,10 @@ export function createFunctions(simulate) {
 
     let result = prompt(x[0], y);
 
-    if (parseFloat(result).toString() === result) {
-      return new Material(parseFloat(result));
-    } else if (result === null) {
+    if (result === null) {
       return new Material(0);
+    } else if (parseFloat(result).toString() === result) {
+      return new Material(parseFloat(result));
     } else {
       return stringify(result, simulate);
     }
@@ -1601,7 +1609,7 @@ export function createFunctions(simulate) {
     return stringify(x[0].trim(), simulate);
   });
 
-  defineFunction(simulate, "Range", { object: StringObject, params: [{ name: "String", needString: true }, { name: "Indexes", noUnits: true, allowVector: true }] }, (x) => {
+  defineFunction(simulate, "Range", { object: StringObject, params: [{ name: "String", needString: true }, { name: "Indexes", noUnits: true }] }, (x) => {
     if (x[1] instanceof Vector) {
       let res = "";
       for (let i = 0; i < x[1].items.length; i++) {
@@ -1633,8 +1641,10 @@ export function createFunctions(simulate) {
     return stringify(x[0].toUpperCase(), simulate);
   });
 
-  simulate.varBank.set("stringbase", makeObjectBase(StringObject, simulate));
-  simulate.varBank.set("vectorbase", makeObjectBase(VectorObject, simulate));
+  simulate.coreBank.set("stringbase", makeObjectBase(StringObject, simulate));
+  simulate.varBank.set("stringbase", simulate.coreBank.get("stringbase"));
+  simulate.coreBank.set("vectorbase", makeObjectBase(VectorObject, simulate));
+  simulate.varBank.set("vectorbase", simulate.coreBank.get("vectorbase"));
 }
 
 
@@ -1657,32 +1667,68 @@ export function makeObjectBase(x, simulate) {
 
 
 /**
+ * @typedef {Object} DefineFunctionParam
+ * @property {string} name
+ * @property {any=} defaultVal
+ * @property {boolean=} noUnits
+ * @property {boolean=} noVector
+ * @property {boolean=} needVector
+ * @property {boolean=} needNum
+ * @property {boolean=} leafNeedNum
+ * @property {boolean=} vectorize
+ * @property {boolean=} allowBoolean
+ * @property {boolean=} allowString
+ * @property {boolean=} needString
+ * @property {boolean=} needPrimitive
+ * @property {boolean=} allowOptionalPrimitive
+ * @property {boolean=} needAgent
+ * @property {boolean=} needAgents
+ * @property {boolean=} needPopulation
+ */
+
+
+/**
+ * @callback DefineFunctionPrep
+ * @param {any[]} args
+ * @returns {any}
+ */
+
+
+/**
+ * @typedef {{ param: DefineFunctionParam, allowEmpty?: boolean, prep?: DefineFunctionPrep, object?: any }|{ params: DefineFunctionParam[], recurse?: boolean, prep?: DefineFunctionPrep, object?: any }} DefineFunctionDefinition
+ */
+
+
+/**
  * @param {import("../Simulator").Simulator} simulate
  * @param {string} name
- * @param {any} definition
+ * @param {DefineFunctionDefinition} definition
  * @param {function} fn
  */
 export function defineFunction(simulate, name, definition, fn) {
-  let configs = definition.params;
-  let arr = Array.isArray(configs);
+  const arr = "params" in definition;
 
   let vectorized = [];
+  
 
-  let requiredLength = configs.length;
-  for (let i = 0; i < configs.length; i++) {
-    if ("defaultVal" in configs[i]) {
-      requiredLength = i;
-      break;
+  let requiredLength = undefined;
+  if (arr) {
+    requiredLength = definition.params.length;
+    for (let i = 0; i < definition.params.length; i++) {
+      if ("defaultVal" in definition.params[i]) {
+        requiredLength = i;
+        break;
+      }
     }
-  }
 
-  for (let i = 0; i < configs.length; i++) {
-    if (configs[i].vectorize) {
-      vectorized.push(i);
-      if (configs[i].noVector) {
-        throw new ModelError(`Cannot have a non-vector vectorized parameter. Function '${name}', parameter '${configs[i].name}'.`, {
-          code: 6051
-        });
+    for (let i = 0; i < definition.params.length; i++) {
+      if (definition.params[i].vectorize) {
+        vectorized.push(i);
+        if (definition.params[i].noVector) {
+          throw new ModelError(`Cannot have a non-vector vectorized parameter. Function '${name}', parameter '${definition.params[i].name}'.`, {
+            code: 6051
+          });
+        }
       }
     }
   }
@@ -1693,10 +1739,10 @@ export function defineFunction(simulate, name, definition, fn) {
   let objectFnName;
 
   if (arr) {
-    standardFnName = name + "(" + configs.map((x) => {
+    standardFnName = name + "(" + definition.params.map((x) => {
       return x.name + ("defaultVal" in x ? "=" + x.defaultVal.toString() : "");
     }).join(", ") + ")";
-    objectFnName = name + "(" + configs.slice(1).map((x) => {
+    objectFnName = name + "(" + definition.params.slice(1).map((x) => {
       return x.name + ("defaultVal" in x ? "=" + x.defaultVal.toString() : "");
     }).join(", ") + ")";
   } else {
@@ -1718,18 +1764,22 @@ export function defineFunction(simulate, name, definition, fn) {
       x = definition.prep(x);
     }
 
-    if (arr && (x.length > configs.length || x.length < requiredLength)) {
-      throw new ModelError(`Wrong number of parameters for ${fnName}.`, {
-        code: 6052
-      });
-    } else if (!arr && !x.length && !definition.allowEmpty) {
-      throw new ModelError(`At least one parameter required for ${name}().`, {
-        code: 6053
-      });
+    if (arr) {
+      if ((x.length > definition.params.length || x.length < requiredLength)) {
+        throw new ModelError(`Wrong number of parameters for ${fnName}.`, {
+          code: 6052
+        });
+      }
+    } else {
+      if (!x.length && !definition.allowEmpty) {
+        throw new ModelError(`At least one parameter required for ${name}().`, {
+          code: 6053
+        });
+      }
     }
 
     for (let i = 0; i < x.length; i++) {
-      let config = arr ? configs[i] : configs;
+      let config = arr ? definition.params[i] : definition.param;
 
       function simplify(param) {
         if (param instanceof UserFunction) {
@@ -1811,39 +1861,33 @@ export function defineFunction(simulate, name, definition, fn) {
       if (config.needPopulation && !(x[i] instanceof Vector)) {
         x[i] = getPopulation(x[i], simulate);
       }
-      if (config.needFunction && !(x[i] instanceof Function || x[i] instanceof UserFunction)) {
-        throw new ModelError(`${fnName} requires a function for the parameter '${config.name}'.`, {
-          code: 6063
-        });
-      }
     }
     let q;
-    if (definition.recurse) {
+    if (arr && definition.recurse) {
       q = toNum(x[0]);
-      if (configs[0] && configs[0].leafNeedNum) {
+      if (definition.params[0] && definition.params[0].leafNeedNum) {
         if (!(q instanceof Vector)) {
           if (!(q instanceof Material)) {
-            throw new ModelError(`${fnName} requires a number for the parameter '${configs[0].name}'.`, {
+            throw new ModelError(`${fnName} requires a number for the parameter '${definition.params[0].name}'.`, {
               code: 6058
             });
           }
         }
       }
     }
-    if (definition.recurse && q instanceof Vector) {
+    if (arr && definition.recurse && q instanceof Vector) {
       return q.cloneApply((z) => {
-        if (!(z instanceof Vector) && configs[0] && configs[0].leafNeedNum) {
+        if (!(z instanceof Vector) && definition.params[0] && definition.params[0].leafNeedNum) {
           if (!(z instanceof Material)) {
-            throw new ModelError(`${fnName} requires a number for the parameter '${configs[0].name}'.`, {
+            throw new ModelError(`${fnName} requires a number for the parameter '${definition.params[0].name}'.`, {
               code: 6058
             });
           }
         }
         return f([z].concat(x.slice(1)), id);
       });
-    } else if (vectorized.length > 0) {
+    } else if (arr && vectorized.length > 0) {
       // Auto-vectorize the inner function
-
 
       let base = undefined, baseI = -1;
       for (let i = 0; i < vectorized.length; i++) {
@@ -1855,7 +1899,7 @@ export function defineFunction(simulate, name, definition, fn) {
               baseI = vectorized[i];
             } else {
               if (!base.keysMatch(v.namesLC)) {
-                throw new ModelError(`Vector keys do not match between parameters '${configs[baseI].name}' and '${configs[vectorized[i]].name}' in ${fnName}.`, {
+                throw new ModelError(`Vector keys do not match between parameters '${definition.params[baseI].name}' and '${definition.params[vectorized[i]].name}' in ${fnName}.`, {
                   code: 6064
                 });
               }
@@ -1889,7 +1933,7 @@ export function defineFunction(simulate, name, definition, fn) {
           let z = fn(newX, id);
           if (z instanceof Vector) {
             if (!base.keysMatch(z.namesLC)) {
-              throw new ModelError(`Vector keys do not match between parameter '${configs[baseI].name}' and calculation result.`, {
+              throw new ModelError(`Vector keys do not match between parameter '${definition.params[baseI].name}' and calculation result.`, {
                 code: 6065
               });
             }
@@ -1910,10 +1954,14 @@ export function defineFunction(simulate, name, definition, fn) {
 
   if (!definition.object) {
     simulate.varBank.set(name.toLowerCase(), f);
+    simulate.coreBank.set(name.toLowerCase(), f);
   } else {
     if (definition.object instanceof Array) {
       for (let i = 0; i < definition.object.length; i++) {
         if (definition.object[i] instanceof Map) {
+          if (definition.object[i] === simulate.varBank) {
+            simulate.coreBank.set(name.toLowerCase(), f);
+          }
           definition.object[i].set(name.toLowerCase(), f);
         } else {
           definition.object[i][name.toLowerCase()] = f;
@@ -1929,7 +1977,7 @@ export function defineFunction(simulate, name, definition, fn) {
     }
   }
 
-  if (definition.recurse) {
+  if (arr && definition.recurse) {
     VectorObject[name.toLowerCase()] = f;
   }
 }

@@ -11,6 +11,7 @@ import { fn } from "./CalcMap.js";
 import { Task } from "./TaskScheduler.js";
 import { State } from "./api/Blocks.js";
 
+/** @typedef {import("./SharedTypes.js").ValueType} ValueType */
 
 /**
  * @typedef {{ location: Vector<Material>, agent: SAgent }} LocationType
@@ -142,7 +143,7 @@ export function createFunctions(simulate) {
         peak.units = simulate.timeUnits;
       }
     }
-    let position = minus(/** @type {Material} */(simulate.varBank.get("time")([])), peak);
+    let position = minus(/** @type {Material} */(simulate.coreBank.get("time")([])), peak);
     let dist = position.forceUnits(createUnitStore("years", simulate)).value * 2 * Math.PI;
     return new Material(Math.cos(dist));
   });
@@ -153,25 +154,25 @@ export function createFunctions(simulate) {
 
 
   defineFunction(simulate, "RemoveUnits", { params: [{ name: "Value", vectorize: true }, { name: "ExpectedUnits", needString: true }] }, (x) => {
-    let m = toNum(x[0]);
+    let m = toNum(x[0]).fullClone();
     return new Material(m.forceUnits(createUnitStore(x[1], simulate)).value);
   });
 
 
   defineFunction(simulate, "PastMean", { object: [simulate.varBank, PrimitiveObject], params: [{ name: "[Primitive]", noVector: true, needPrimitive: true }, { name: "Past Range", defaultVal: "All Time", vectorize: true }] }, (x) => {
     if (x.length === 1) {
-      return simulate.varBank.get("mean")(x[0].getPastValues());
+      return simulate.coreBank.get("mean")(x[0].getPastValues());
     } else {
-      return simulate.varBank.get("mean")(x[0].getPastValues(toNum(x[1])));
+      return simulate.coreBank.get("mean")(x[0].getPastValues(toNum(x[1])));
     }
   });
 
   defineFunction(simulate, "PastMedian", { object: [simulate.varBank, PrimitiveObject], params: [{ name: "[Primitive]", noVector: true, needPrimitive: true }, { name: "Past Range", defaultVal: "All Time", vectorize: true }] }, (x) => {
 
     if (x.length === 1) {
-      return simulate.varBank.get("median")(x[0].getPastValues());
+      return simulate.coreBank.get("median")(x[0].getPastValues());
     } else {
-      return simulate.varBank.get("median")(x[0].getPastValues(toNum(x[1])));
+      return simulate.coreBank.get("median")(x[0].getPastValues(toNum(x[1])));
     }
   });
 
@@ -195,7 +196,7 @@ export function createFunctions(simulate) {
       items = x[0].getPastValues(toNum(x[1]));
     }
     if (items.length > 1) {
-      return simulate.varBank.get("stddev")(items);
+      return simulate.coreBank.get("stddev")(items);
     } else {
       return new Material(0);
     }
@@ -213,7 +214,7 @@ export function createFunctions(simulate) {
     }
 
     if (items1.length > 1) {
-      return simulate.varBank.get("correlation")([new Vector(items1, simulate), new Vector(items2, simulate)]);
+      return simulate.coreBank.get("correlation")([new Vector(items1, simulate), new Vector(items2, simulate)]);
     } else {
       return new Material(0);
     }
@@ -222,18 +223,18 @@ export function createFunctions(simulate) {
   defineFunction(simulate, "PastMax", { object: [simulate.varBank, PrimitiveObject], params: [{ name: "[Primitive]", noVector: true, needPrimitive: true }, { name: "Past Range", defaultVal: "All Time", vectorize: true }] }, (x) => {
 
     if (x.length === 1) {
-      return simulate.varBank.get("max")(x[0].getPastValues());
+      return simulate.coreBank.get("max")(x[0].getPastValues());
     } else {
-      return simulate.varBank.get("max")(x[0].getPastValues(toNum(x[1])));
+      return simulate.coreBank.get("max")(x[0].getPastValues(toNum(x[1])));
     }
   });
 
   defineFunction(simulate, "PastMin", { object: [simulate.varBank, PrimitiveObject], params: [{ name: "[Primitive]", noVector: true, needPrimitive: true }, { name: "Past Range", defaultVal: "All Time", vectorize: true }] }, (x) => {
 
     if (x.length === 1) {
-      return simulate.varBank.get("min")(x[0].getPastValues());
+      return simulate.coreBank.get("min")(x[0].getPastValues());
     } else {
-      return simulate.varBank.get("min")(x[0].getPastValues(toNum(x[1])));
+      return simulate.coreBank.get("min")(x[0].getPastValues(toNum(x[1])));
     }
   });
 
@@ -274,9 +275,9 @@ export function createFunctions(simulate) {
           return height;
         }
       } else if (greaterThanEq(simulate.time(), start)) {
-        let x = minus(simulate.time(), mult(simulate.varBank.get("floor")([div(minus(simulate.time(), start), repeat)]), repeat));
+        let x = minus(simulate.time(), mult(simulate.coreBank.get("floor")([div(minus(simulate.time(), start), repeat)]), repeat));
         let dv = minus(simulate.time(), start);
-        if (minus(/** @type {Material} */(simulate.varBank.get("round")([div(dv, repeat)])), div(dv, repeat)).value === 0 || (greaterThanEq(x, start) && lessThanEq(x, plus(start, width)))) {
+        if (minus(/** @type {Material} */(simulate.coreBank.get("round")([div(dv, repeat)])), div(dv, repeat)).value === 0 || (greaterThanEq(x, start) && lessThanEq(x, plus(start, width)))) {
           return height;
         }
       }
@@ -303,7 +304,7 @@ export function createFunctions(simulate) {
         finish.units = simulate.timeUnits;
       }
       if (greaterThanEq(simulate.time(), start)) {
-        let q = div(mult(simulate.varBank.get("min")([minus(finish, start), minus(simulate.time(), start)]), height), minus(finish, start));
+        let q = div(mult(simulate.coreBank.get("min")([minus(finish, start), minus(simulate.time(), start)]), height), minus(finish, start));
         return q;
       }
       return new Material(0, height.units);
@@ -329,7 +330,8 @@ export function createFunctions(simulate) {
 
       return new Material(0, height.units);
     });
-  simulate.varBank.set("staircase", simulate.varBank.get("step"));
+  simulate.varBank.set("staircase", simulate.coreBank.get("step"));
+  simulate.coreBank.set("staircase", simulate.varBank.get("staircase"));
 
 
   defineFunction(simulate, "ConverterTable", { object: [simulate.varBank, PrimitiveObject], params: [{ name: "[Converter]", noVector: true, needPrimitive: true }] },
@@ -430,7 +432,7 @@ export function createFunctions(simulate) {
   ] },
   (_x) => {
     throw new ModelError("DelayN() may only be called in a top level primitive equation", {
-      code: 1055
+      code: 1075
     });
   });
 
@@ -461,6 +463,7 @@ export function createFunctions(simulate) {
     return mySeries.get(x[0]);
   });
   simulate.varBank.get("fix").delayEvalParams = true;
+  simulate.coreBank.set("fix", simulate.varBank.get("fix"));
 
 
   simulate.varBank.set("populationsize", function (x) {
@@ -473,6 +476,7 @@ export function createFunctions(simulate) {
     });
   });
   PrimitiveObject["populationsize"] = simulate.varBank.get("populationsize");
+  simulate.coreBank.set("populationsize", simulate.varBank.get("populationsize"));
 
   defineFunction(simulate, "Remove", { object: [simulate.varBank, AgentObject], params: [{ needAgent: true, name: "[Agent]" }] }, (x) => {
     if (x[0].dead) {
@@ -982,6 +986,7 @@ export function createFunctions(simulate) {
       return x[0];
     }
   });
+  simulate.coreBank.set("print", simulate.varBank.get("print"));
 
   defineFunction(simulate, "Width", { params: [{ needAgents: true, name: "[Agent Population]" }] }, (x) => {
     return x[0].geoWidth;
@@ -1008,6 +1013,25 @@ export function createFunctions(simulate) {
     }
   });
 
+  /**
+   * 
+   * @param {Vector} x 
+   */
+  function checkLocationVector(x) {
+    if (x.items.length !== 2 || !(x.items[0] instanceof Material) || !(x.items[1] instanceof Material)) {
+      throw new ModelError("Location vector does not contain exactly two numbers.", {
+        code: 1067
+      });
+    }
+  
+    if (x.names && (!x.names.length || x.names.length !== 2 || x.namesLC[0] !== "x" || x.namesLC[1] !== "y")) {
+      throw new ModelError("Location vector must have names 'x' and 'y'.", {
+        code: 1067
+      });
+    }
+  }
+
+
   defineFunction(simulate, "SetLocation", { object: [simulate.varBank, AgentObject], params: [{ needAgent: true, name: "[Agent]" }, { needVector: true, name: "Direction" }] },
     /**
      * @param {[SAgent, Vector<Material>]} x
@@ -1015,6 +1039,8 @@ export function createFunctions(simulate) {
      */
     (x) => {
       let v = toNum(x[1]);
+      checkLocationVector(v);
+
       let agent = x[0];
       agent.location = v.fullClone();
       if (!agent.location.names) {
@@ -1031,6 +1057,8 @@ export function createFunctions(simulate) {
      */
     (x) => {
       let v = toNum(x[1]);
+
+      checkLocationVector(v);
       
       shiftLocation(x[0], plus(x[0].location, v));
       return new Material(0);
@@ -1119,13 +1147,15 @@ export function createFunctions(simulate) {
       return new Material(1);
     });
 
-  simulate.varBank.set("primitivebase", makeObjectBase(PrimitiveObject, simulate));
+  simulate.coreBank.set("primitivebase", makeObjectBase(PrimitiveObject, simulate));
 
-  simulate.varBank.set("agentbase", makeObjectBase(AgentObject, simulate));
+  simulate.coreBank.set("agentbase", makeObjectBase(AgentObject, simulate));
+  simulate.varBank.set("agentbase", simulate.coreBank.get("agentbase"));
 
-  simulate.varBank.get("primitivebase").parent = simulate.varBank.get("agentbase");
+  simulate.coreBank.get("primitivebase").parent = simulate.coreBank.get("agentbase");
 
-  simulate.varBank.set("vectorbase", makeObjectBase(VectorObject, simulate));
+  simulate.coreBank.set("vectorbase", makeObjectBase(VectorObject, simulate));
+  simulate.varBank.set("vectorbase", simulate.coreBank.get("vectorbase"));
 }
 
 
@@ -1187,7 +1217,7 @@ function distance(a, b, simulate) {
   let v2 = disty.value;
 
   if (distx.units !== disty.units) {
-    v2 = fn["*"](v2, convertUnits(distx.units, disty.units));
+    v2 = fn["*"](v2, convertUnits(disty.units, distx.units));
   }
 
   let distN = fn["sqrt"](fn["+"](fn["*"](v1, v1), fn["*"](v2, v2)));

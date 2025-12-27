@@ -56,7 +56,7 @@ test("Connector ends are correct", () => {
 });
 
 
-test("Transition timeout cannot be negative", () => {
+test("Transition timeout must be non-negative number", () => {
   let m = new Model();
 
   let s = m.State({
@@ -75,6 +75,37 @@ test("Transition timeout cannot be negative", () => {
 
   t.value = "-1";
   expect(() => m.simulate()).toThrow(/cannot be less/);
+
+
+  t.value = "\"\"";
+  expect(() => m.simulate()).toThrow(/must evaluate to a number/);
+});
+
+
+test("State residency must be non-negative number", () => {
+  let m = new Model();
+
+  let s = m.State({
+    name: "State"
+  });
+
+
+  s.residency = "0";
+  m.simulate(); // no error
+
+  s.residency = "";
+  m.simulate(); // no error
+
+  s.residency = "1";
+  m.simulate(); // no error
+
+
+  s.residency = "-1";
+  expect(() => m.simulate()).toThrow(/cannot be less/);
+
+
+  s.residency = "\"\"";
+  expect(() => m.simulate()).toThrow(/must be a number/);
 });
 
 

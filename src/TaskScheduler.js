@@ -18,7 +18,7 @@ export class TaskQueue {
     this.end = config.end;
 
     /**
-     * @type {Object<number, boolean>}
+     * @type {Object<string, boolean>}
      */
     this.states = {};
 
@@ -35,9 +35,6 @@ export class TaskQueue {
       console.log("    Priority: " + cursor.key.priority);
       if (cursor.key.expires !== undefined) {
         console.log("    Expires: " + cursor.key.expires);
-      }
-      if (cursor.key.skip !== undefined) {
-        console.log("    Skip: " + cursor.key.skip);
       }
       cursor = this.tasks.next(cursor);
     }
@@ -221,7 +218,6 @@ export class Task {
    * @param {function=} config.rollback
    * @param {number=} config.priority
    * @param {number=} config.expires
-   * @param {number=} config.skip
    * @param {function=} config.timeShift
    * @param {any=} config.data
    * @param {string=} config.blocker
@@ -244,7 +240,6 @@ export class Task {
     this.reverse = config.rollback;
     this.priority = config.priority || 0; // Lower priorities will be run before higher priorities at the same time
     this.expires = config.expires; // if defined, the number of times this is called before it expires
-    this.skip = config.skip;
     this.timeShift = config.timeShift;
     this.data = config.data; // optional data object to be carried along, the task scheduler makes no use of this
     this.blocker = config.blocker;
@@ -264,27 +259,21 @@ export class Task {
 
   execute() {
     if (this.action && (!this.deadAction) && ((!this.blocker) || !this.queue.states[this.blocker])) {
-      if (this.skip !== undefined && this.skip > 0) {
-        this.skip--;
-        if (this.queue.debug) {
-          console.log("Skipping: " + this.name);
-        }
-      } else {
-        if (this.queue.debug) {
-          console.log("%c Executing: " + this.name + " (Time: " + this.time.value + ")", "color:blue");
-        }
+      
+      if (this.queue.debug) {
+        console.log("%c Executing: " + this.name + " (Time: " + this.time.value + ")", "color:blue");
+      }
 
-        if (this.expires !== undefined) {
-          this.expires--;
+      if (this.expires !== undefined) {
+        this.expires--;
+        if (this.queue.debug) {
+          console.log("    Current count before expire: " + this.expires);
+        }
+        if (this.expires <= 0) {
           if (this.queue.debug) {
-            console.log("    Current count before expire: " + this.expires);
+            console.log("    Task expired.");
           }
-          if (this.expires <= 0) {
-            if (this.queue.debug) {
-              console.log("    Task expired.");
-            }
-            this.deadAction = true;
-          }
+          this.deadAction = true;
         }
       }
 

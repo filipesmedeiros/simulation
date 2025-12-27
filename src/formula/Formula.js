@@ -13,6 +13,9 @@ import FormulaParser from "./grammar/FormulaParser.js";
 import { toHTML } from "../Utilities.js";
 import { DUPLICATE_PRIMITIVE_NAMES } from "../Modeler.js";
 
+
+/** @typedef {import("../SharedTypes.js").ValueType} ValueType */
+
 export const PARENT_SYMBOL = Symbol("-parent");
 
 
@@ -20,12 +23,16 @@ export const PARENT_SYMBOL = Symbol("-parent");
  * @param {import("../Simulator").Simulator} simulate
  */
 export function bootCalc(simulate) {
-  simulate.varBank = new Map();
+  simulate.coreBank = new Map();
+  simulate.coreBank.set(PARENT_SYMBOL, null);
 
+
+  simulate.varBank = new Map();
   simulate.varBank.set(PARENT_SYMBOL, null);
   simulate.varBank.set("e", new Material(Math.E));
   simulate.varBank.set("pi", new Material(Math.PI));
   simulate.varBank.set("phi", new Material(1.61803399));
+  
   generalCreateFunctions(simulate);
   modelerCreateFunctions(simulate);
 }
@@ -106,7 +113,7 @@ function getErrorSnippet(input, line, column) {
   const lines = input.split("\n");
 
   if (line < 1 || line > lines.length) {
-    return null
+    return null;
   }
 
   const errorLine = lines[line - 1];
@@ -131,7 +138,6 @@ export function createTree(input, source, simulate) {
     line: 1,
     source
   };
-  input = input.replace(/\\n/g, "\n");
   const chars = new antlr.InputStream(input);
   const lexer = new FormulaLexer(chars);
   lexer.removeErrorListeners();
@@ -143,7 +149,7 @@ export function createTree(input, source, simulate) {
       if (snippet !== null) {
         snippet = ` at "${snippet}"`;
       } else {
-        snippet = '';
+        snippet = "";
       }
 
       throw new ModelError(`Invalid equation syntax${snippet}`, {
@@ -676,7 +682,7 @@ function convertToObject(node, parser, source) {
       line: node.start.line,
       source
     });
-    for (let i = 0; i < node.children.length; i++) {
+    for (let i = 0; i < node.children?.length; i++) {
       if (getNodeText(node.children[i]) === "\n" || getNodeText(node.children[i]) === "\r\n") {
         continue;
       }
@@ -3062,14 +3068,28 @@ trimEvalMap["STRING"] = function (node, scope, simulate) {
   let sub = node.origText.slice(1, node.origText.length - 1);
   let s;
   if (node.origText[0] === "\"") {
-    s = sub.replace(/\\\\/g, "\\\\TEMPTXT\\\\").replace(/\\"/g, "\"").replace(/\\'/g, "'").replace(/\\t/g, "\t").replace(/\\b/g, "\b").replace(/\\f/g, "\f").replace(/\\n/g, "\n").replace(/\\r/g, "\r").replace(/\\\\TEMPTXT\\\\/g, "\\");
+    s = sub.replace(/\\(.)/g, (match, ch) => {
+      switch (ch) {
+      case "\\": return "\\";
+      case "\"": return "\"";
+      case "'": return "'";
+      case "t": return "\t";
+      case "b": return "\b";
+      case "f": return "\f";
+      case "n": return "\n";
+      case "r": return "\r";
+      default:
+        // unknown, leave as-is
+        return match;
+      }
+    });
   } else {
-    s = sub.replace(/\n/, "\\n");
+    s = sub;
   }
   // eslint-disable-next-line
   s = new String(s);
   // @ts-ignore
-  s.vector = new Vector([], simulate, [], simulate.varBank.get("stringbase"));
+  s.vector = new Vector([], simulate, [], simulate.coreBank.get("stringbase"));
   return s;
 };
 trimEvalMap["INTEGER"] = function (node) {

@@ -9,28 +9,31 @@
         "time_step": 0.1,
         "time_units": "SECONDS"
     },
-    "units": [
-        {
-            "name": "kg",
-            "base": "grams",
-            "to_base": 0.001
-        },
-        {
-            "name": "s",
-            "base": "seconds",
-            "to_base": 1
-        },
-        {
-            "name": "m",
-            "base": "meters",
-            "to_base": 1
-        },
-        {
-            "name": "rad",
-            "base": "radians",
-            "to_base": 1
-        }
-    ],
+    "engine_settings": {
+        "globals": "# Acceleration due to gravity\ng <- {9.81 m/s^2}",
+        "units": [
+            {
+                "name": "kg",
+                "base": "grams",
+                "factor": 1000
+            },
+            {
+                "name": "s",
+                "base": "seconds",
+                "factor": 1
+            },
+            {
+                "name": "m",
+                "base": "meters",
+                "factor": 1
+            },
+            {
+                "name": "rad",
+                "base": "radians",
+                "factor": 1
+            }
+        ]
+    },
     "elements": [
         {
             "type": "STOCK",
@@ -112,24 +115,6 @@
         },
         {
             "type": "VARIABLE",
-            "name": "Gravity",
-            "display": {
-                "coordinates": [
-                    250,
-                    360
-                ],
-                "size": [
-                    80,
-                    40
-                ]
-            },
-            "behavior": {
-                "value": 9.81,
-                "units": "m / s^2"
-            }
-        },
-        {
-            "type": "VARIABLE",
             "name": "Damping Coefficient",
             "display": {
                 "interactive": true,
@@ -177,7 +162,7 @@
                 ]
             },
             "behavior": {
-                "value": "-([Damping Coefficient]/([Mass]*[Length]^2))*[Angular Velocity] - ([Gravity]/[Length])*sin([Angle]) * {1 radian}",
+                "value": "-([Damping Coefficient]/([Mass]*[Length]^2))*[Angular Velocity] - (g /[Length])*sin([Angle]) * {1 radian}",
                 "units": "rad / s^2"
             }
         },
@@ -199,11 +184,6 @@
         {
             "type": "LINK",
             "from": "Length",
-            "to": "Angular Acceleration"
-        },
-        {
-            "type": "LINK",
-            "from": "Gravity",
             "to": "Angular Acceleration"
         },
         {

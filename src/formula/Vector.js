@@ -3,6 +3,9 @@ import { Material } from "./Material.js";
 import { ModelError } from "./ModelError.js";
 import { selectFromMatrix, strictEquals } from "./Utilities.js";
 
+
+/** @typedef {import("../SharedTypes.js").VectorElementType} VectorElementType */
+
 /**
  * Truncates to max length adding ellipsis if truncated. If text is only 2 or fewer characters longer than maxLength, it will not be truncated.
  * 
@@ -64,7 +67,7 @@ export class Vector {
   constructor(items, simulate, names, parent) {
     this.simulate = simulate;
 
-    this.parent = parent ? parent : simulate.varBank.get("vectorbase");
+    this.parent = parent ? parent : simulate.coreBank.get("vectorbase");
     this.items = items;
     /** @type {string[]} */
     this.names = names;
@@ -225,7 +228,7 @@ export class Vector {
         for (let i = 0; i < this.depth(); i++) {
           if (!(targetLevel instanceof Vector)) {
             selector.push((x) => {
-              return this.simulate.varBank.get("sum")(x[0].items);
+              return this.simulate.coreBank.get("sum")(x[0].items);
             });
             base = /** @type {Vector} */ (base.items[0]);
           } else if ((base.namesLC === undefined && targetLevel.namesLC === undefined) || (base.namesLC !== undefined && targetLevel.namesLC !== undefined && keysMatch(base.namesLC, targetLevel.namesLC))) {
@@ -234,7 +237,7 @@ export class Vector {
             targetLevel =  /** @type {Vector} */ (targetLevel.items[0]);
           } else {
             selector.push((x) => {
-              return this.simulate.varBank.get("sum")(x[0].items);
+              return this.simulate.coreBank.get("sum")(x[0].items);
             });
 
             base =  /** @type {Vector} */ (base.items[0]);
@@ -248,7 +251,7 @@ export class Vector {
         return selectFromMatrix(this, this.simulate, selector);
       }
     } else {
-      return this.simulate.varBank.get("sum")([this.simulate.varBank.get("flatten")([this])]);
+      return this.simulate.coreBank.get("sum")([this.simulate.coreBank.get("flatten")([this])]);
     }
   }
 
@@ -418,6 +421,9 @@ export class Vector {
   }
 
 
+  /**
+   * @returns {any[]}
+   */
   fullNames() {
     let firstElement = this.items[0];
 

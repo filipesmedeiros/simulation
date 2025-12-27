@@ -25,13 +25,17 @@ export { Primitive, Stock, Variable, Converter, State, Action, Population, Flow,
 
 /**
  * @typedef {object} ModelConfig
- * @property {function=} primitiveFn
- * @property {number=} timeStart
- * @property {number=} timeLength
- * @property {number=} timeStep
+ * @property {function} primitiveFn
+ * @property {number} timeStart
+ * @property {number} timeLength
+ * @property {number} timeStep
  * @property {number=} timePause
- * @property {AlgorithmType=} algorithm
- * @property {"Seconds"|"Minutes"|"Hours"|"Days"|"Weeks"|"Months"|"Years"=} timeUnits
+ * @property {AlgorithmType} algorithm
+ * @property {"Seconds"|"Minutes"|"Hours"|"Days"|"Weeks"|"Months"|"Years"} timeUnits
+ */
+
+/**
+ * @typedef {Partial<ModelConfig>} ModelConfigOptions
  */
 
 
@@ -76,7 +80,7 @@ export function removeModelGhosts(model) {
 
 export class Model {
   /**
-   * @param {ModelConfig=} config
+   * @param {ModelConfigOptions=} config
    */
   constructor(config = {}) {
     /** @type {string} */
@@ -147,7 +151,7 @@ export class Model {
   }
 
   /**
-   * Checks the model for some common errors (e.g syntax errors). The model is not run and runtime errors are not checked.
+   * Checks the model for some static errors (e.g syntax errors). The model is not run and runtime errors are not checked.
    * 
    * The function returns an array of errors found.
    * 
@@ -428,8 +432,8 @@ export class Model {
   }
 
   /**
-   * @param {Stock} start
-   * @param {Stock} end
+   * @param {Stock|null} start
+   * @param {Stock|null} end
    * @param {(import("./Blocks.js").PrimitiveConfig & import("./Blocks.js").ValuedConfig & import("./Blocks.js").FlowConfig)=} config
    *
    * @return {Flow}
@@ -442,8 +446,8 @@ export class Model {
   }
 
   /**
-   * @param {State} start
-   * @param {State} end
+   * @param {State|null} start
+   * @param {State|null} end
    * @param {(import("./Blocks.js").PrimitiveConfig & import("./Blocks.js").TransitionConfig)=} config
    *
    * @return {Transition}
@@ -456,8 +460,8 @@ export class Model {
   }
 
   /**
-   * @param {Primitive} start
-   * @param {Primitive} end
+   * @param {Primitive|null} start
+   * @param {Primitive|null} end
    * @param {(import("./Blocks.js").PrimitiveConfig & import("./Blocks.js").LinkConfig)=} config
    *
    * @return {Link}

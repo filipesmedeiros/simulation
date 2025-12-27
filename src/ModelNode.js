@@ -2,6 +2,10 @@
 import { Stock, Variable, State, Action, Population, Transition, Flow, Link, Folder, Agent, Converter, Primitive } from "./api/Blocks.js";
 
 
+/** @typedef {import("./SharedTypes.js").GraphNode} GraphNode */
+/** @typedef {import("./SharedTypes.js").PrimitiveNameType} PrimitiveNameType */
+
+
 export function modelNodeClone(node, parent) {
   let obj = new ModelNode();
   obj.value = node.cloneNode(true);

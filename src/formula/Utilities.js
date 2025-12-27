@@ -16,7 +16,7 @@ export function stringify(x, simulate) {
   // eslint-disable-next-line
   let res = new String(x);
   // @ts-ignore
-  res.parent = simulate.varBank.get("stringbase");
+  res.parent = simulate.coreBank.get("stringbase");
   return res;
 }
 
@@ -25,13 +25,17 @@ export function stringify(x, simulate) {
 /**
  * @param {*} mat
  * @param {import("../Simulator").Simulator} simulate
- * @param {*} items
+ * @param {any[]} items
  * @param {*} fill
  */
 export function selectFromMatrix(mat, simulate, items, fill) {
 
   let selectorCount = items.length;
 
+  /**
+   * @param {any} m 
+   * @returns {Vector}
+   */
   function vectorize(m) {
     if (!(m instanceof Vector)) {
       if (items[0] === "*") {
@@ -40,11 +44,11 @@ export function selectFromMatrix(mat, simulate, items, fill) {
             code: 3000
           });
         } else if (m instanceof Boolean || typeof m === "boolean") {
-          throw new ModelError("Can't use * selector on an boolean.", {
+          throw new ModelError("Can't use * selector on a boolean.", {
             code: 3001
           });
         } else if (m instanceof String || typeof m === "string") {
-          throw new ModelError("Can't use * selector on an string.", {
+          throw new ModelError("Can't use * selector on a string.", {
             code: 3002
           });
         } else {
@@ -95,7 +99,7 @@ export function selectFromMatrix(mat, simulate, items, fill) {
 
       if (vec.collapsed) {
 
-        if (!fill) {
+        if (fill === undefined) {
           children[i].items = [vec.data];
           children[i].names = ["!!BREAKOUT DATA"];
         }
@@ -104,7 +108,7 @@ export function selectFromMatrix(mat, simulate, items, fill) {
       } else {
         newChildren = newChildren.concat(vec.data.items);
 
-        if (!fill) {
+        if (fill === undefined) {
           children[i].items = vec.data.items;
           children[i].names = vec.data.names;
         }
@@ -132,11 +136,11 @@ function doBreakouts(vec) {
 
 
 /**
- * @param {*} vec
+ * @param {Vector} vec
  * @param {import("../Simulator").Simulator} simulate
  * @param {*} items
  * @param {*} fill
- * @param {*=} doNotClone
+ * @param {boolean=} doNotClone
  */
 export function selectFromVector(vec, simulate, items, fill, doNotClone) {
   if (items === "*") {
@@ -155,6 +159,7 @@ export function selectFromVector(vec, simulate, items, fill, doNotClone) {
 
   if (items instanceof Vector) {
     let res = [];
+    /** @type {string[]} */
     let names = vec.names ? [] : undefined;
     for (let i = 0; i < items.items.length; i++) {
       let v = items.items[i];

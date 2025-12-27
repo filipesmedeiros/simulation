@@ -19,6 +19,7 @@ test("find()", () => {
   expect(m.find(s => s.name === "y")).toHaveLength(2);
   expect(m.find(s => ["x", "y", "fvdf"].includes(s.name))).toHaveLength(3);
 
+
   let id = m.get(x => x.name === "x").id;
   expect(m.getId(id)).not.toBeNull();
   expect(() => m.getId("gfdgdfg")).toThrow(/No matching/);
